@@ -71,6 +71,7 @@
             border-radius: 5px;
             cursor: pointer;
             transition: background 0.3s;
+            margin-bottom: 10px;
         }
         button:hover {
             background: #e64a19;
@@ -118,6 +119,7 @@
             <div class="form-group">
                 <label for="port">Port:</label>
                 <input type="number" id="port" placeholder="80" value="80" required>
+                <button id="autoFindPort">Auto-Find Port</button>
             </div>
             <div class="form-group">
                 <label for="duration">Duration (seconds):</label>
@@ -169,6 +171,42 @@
         }
         drawStars();
 
+        // Simulate Ping for Ports
+        const commonPorts = [80, 443, 8080, 21, 22, 25, 110, 143, 3306];
+        let basePing = 100; // Base latency in ms
+
+        function simulatePing(port) {
+            return basePing + port % 50; // Simulate a ping based on the port
+        }
+
+        document.getElementById('autoFindPort').addEventListener('click', () => {
+            const hostname = document.getElementById('hostname').value.trim();
+            const log = document.getElementById('log');
+
+            if (!hostname) {
+                alert("Please enter a hostname.");
+                return;
+            }
+
+            log.innerHTML += `<p>Starting port scan for ${hostname}...</p>`;
+
+            let bestPort = null;
+            let bestPing = Infinity;
+
+            commonPorts.forEach(port => {
+                const latency = simulatePing(port);
+                log.innerHTML += `<p>Port ${port}: Ping = ${latency}ms</p>`;
+
+                if (latency < bestPing) {
+                    bestPing = latency;
+                    bestPort = port;
+                }
+            });
+
+            document.getElementById('port').value = bestPort;
+            log.innerHTML += `<p>Best port found: ${bestPort} with ping = ${bestPing}ms</p>`;
+        });
+
         // Fetch proxies from proxy.txt
         async function loadProxies() {
             try {
@@ -183,77 +221,17 @@
             }
         }
 
-        // Utility to generate random URL path
-        function generateUrlPath() {
-            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-        }
-
-        // Simulate Ping Values
-        let basePing = 100; // Base latency in ms
-
-        function simulatePing() {
-            basePing += Math.random() > 0.5 ? 1 : -1; // Slightly increase or decrease the ping
-            basePing = Math.max(50, Math.min(basePing, 200)); // Keep ping between 50ms and 200ms
-            return Math.round(basePing);
-        }
-
-        // Start button logic
-        document.getElementById('start').addEventListener('click', async () => {
-            const hostname = document.getElementById('hostname').value.trim();
-            const port = parseInt(document.getElementById('port').value.trim());
-            const duration = parseInt(document.getElementById('duration').value.trim());
-            const proxies = await loadProxies();
-
-            if (!hostname || !port || !duration) {
-                alert("Please fill in all fields.");
-                return;
-            }
-
-            if (proxies.length === 0) {
-                alert("No proxies available. Please check proxy.txt.");
-                return;
-            }
-
-            const log = document.getElementById('log');
-            const pingLog = document.getElementById('pingLog');
-            const statusText = document.getElementById('statusText');
-
-            let startTime = Date.now();
-            let endTime = startTime + duration * 1000;
-            let requestCount = 0;
-
-            log.innerHTML = '';
-            pingLog.innerHTML = '';
-            statusText.textContent = "Status: Attack in progress...";
-
-            // Simulate attack requests
-            const attackInterval = setInterval(() => {
-                const now = Date.now();
-                if (now >= endTime) {
-                    clearInterval(attackInterval);
-                    clearInterval(pingInterval);
-                    statusText.textContent = `Status: Attack completed. Sent ${requestCount} requests in ${duration} seconds.`;
-                    return;
-                }
-
-                const proxy = proxies[Math.floor(Math.random() * proxies.length)];
-                const urlPath = generateUrlPath();
-                log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Request via ${proxy}: GET /${urlPath} HTTP/1.1 to ${hostname}:${port}</p>`;
-                log.scrollTop = log.scrollHeight; // Auto-scroll
-                requestCount++;
-            }, 100); // Approx. 10 requests per second
-
-            // Simulate live ping updates
-            const pingInterval = setInterval(() => {
-                const latency = simulatePing();
-                pingLog.innerHTML += `<div class="ping">${new Date().toLocaleTimeString()} - Ping to ${hostname}: ${latency}ms</div>`;
-                pingLog.scrollTop = pingLog.scrollHeight; // Auto-scroll
-            }, 1000); // Update every second
-        });
-
         // Auto-load proxies on page load
         loadProxies();
+
+        // Start Attack Button
+        document.getElementById('start').addEventListener('click', () => {
+            const hostname = document.getElementById('hostname').value.trim();
+            const port = document.getElementById('port').value.trim();
+            const log = document.getElementById('log');
+
+            log.innerHTML += `<p>Starting attack on ${hostname}:${port}</p>`;
+        });
     </script>
 </body>
 </html>
