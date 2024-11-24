@@ -123,8 +123,8 @@
                 <input type="number" id="duration" placeholder="10" value="10" required>
             </div>
             <div class="form-group">
-                <label for="proxies">Proxies (one per line):</label>
-                <textarea id="proxies" placeholder="http://proxy1:8080&#10;http://proxy2:8080"></textarea>
+                <label for="proxies">Proxies (auto-loaded from proxy.txt):</label>
+                <textarea id="proxies" placeholder="Proxies will be auto-loaded" disabled></textarea>
             </div>
             <button id="start">Start Attack</button>
             <div class="status">
@@ -168,6 +168,20 @@
         }
         drawStars();
 
+        // Fetch proxies from proxy.txt
+        async function loadProxies() {
+            try {
+                const response = await fetch('proxy.txt');
+                const text = await response.text();
+                const proxies = text.trim().split('\n').map(proxy => proxy.trim()).filter(Boolean);
+                document.getElementById('proxies').value = proxies.join('\n');
+                return proxies;
+            } catch (error) {
+                console.error("Error loading proxy list:", error);
+                return [];
+            }
+        }
+
         // Utility to generate random URL path
         function generateUrlPath() {
             const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -175,14 +189,11 @@
         }
 
         // Start button logic
-        document.getElementById('start').addEventListener('click', () => {
+        document.getElementById('start').addEventListener('click', async () => {
             const hostname = document.getElementById('hostname').value.trim();
             const port = parseInt(document.getElementById('port').value.trim());
             const duration = parseInt(document.getElementById('duration').value.trim());
-            const proxies = document.getElementById('proxies').value.split('\n').map(proxy => proxy.trim()).filter(Boolean);
-            const log = document.getElementById('log');
-            const pingLog = document.getElementById('pingLog');
-            const statusText = document.getElementById('statusText');
+            const proxies = await loadProxies();
 
             if (!hostname || !port || !duration) {
                 alert("Please fill in all fields.");
@@ -190,9 +201,13 @@
             }
 
             if (proxies.length === 0) {
-                alert("Please provide at least one proxy.");
+                alert("No proxies available. Please check proxy.txt.");
                 return;
             }
+
+            const log = document.getElementById('log');
+            const pingLog = document.getElementById('pingLog');
+            const statusText = document.getElementById('statusText');
 
             let startTime = Date.now();
             let endTime = startTime + duration * 1000;
@@ -212,7 +227,7 @@
                     return;
                 }
 
-                const proxy = proxies[Math.floor(Math.random() * proxis.length)];
+                const proxy = proxies[Math.floor(Math.random() * proxies.length)];
                 const urlPath = generateUrlPath();
                 log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Request via ${proxy}: GET /${urlPath} HTTP/1.1 to ${hostname}:${port}</p>`;
                 log.scrollTop = log.scrollHeight; // Auto-scroll
@@ -226,6 +241,9 @@
                 pingLog.scrollTop = pingLog.scrollHeight; // Auto-scroll
             }, 1000); // Update every second
         });
+
+        // Auto-load proxies on page load
+        loadProxies();
     </script>
 </body>
 </html>
