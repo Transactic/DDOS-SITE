@@ -5,62 +5,154 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attack Simulator</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
+        /* General Styling */
+        * {
             margin: 0;
             padding: 0;
-            background-color: #222;
-            color: #eee;
+            box-sizing: border-box;
         }
+        body {
+            font-family: Arial, sans-serif;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        /* Background Nebula */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://i.imgur.com/OgGHnvB.jpg') no-repeat center center/cover;
+            z-index: -1;
+            filter: brightness(0.5);
+        }
+        /* Layout */
         .container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+        .main-panel {
+            flex: 3;
             padding: 20px;
+            overflow-y: auto;
+        }
+        .side-panel {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-left: 2px solid #444;
+            overflow-y: auto;
+        }
+        .panel-title {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            background: #ff5722;
+            color: white;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #e64a19;
         }
         .status {
             margin-top: 20px;
+            font-size: 1rem;
+            text-align: center;
         }
         .log {
             max-height: 300px;
             overflow-y: auto;
-            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.8);
             padding: 10px;
             border: 1px solid #444;
-            background-color: #111;
+            border-radius: 5px;
             font-family: monospace;
         }
         .log p {
-            margin: 0;
-            padding: 5px 0;
+            margin: 5px 0;
+        }
+        .ping {
+            font-family: monospace;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #444;
+            border-radius: 5px;
+            margin-bottom: 5px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>HTTP Request Attack Simulator</h1>
-        <p>This simulator sends HTTP-like requests for a specified duration.</p>
-        
-        <label for="hostname">Hostname (e.g., example.com):</label>
-        <input type="text" id="hostname" placeholder="Enter Hostname" required><br><br>
-        
-        <label for="port">Port:</label>
-        <input type="number" id="port" placeholder="80" value="80" required><br><br>
-        
-        <label for="duration">Duration (seconds):</label>
-        <input type="number" id="duration" placeholder="10" value="10" required><br><br>
-        
-        <button id="start">Start Attack</button>
-        <div class="status">
-            <p id="statusText">Status: Ready</p>
+        <!-- Main Panel -->
+        <div class="main-panel">
+            <h1 style="text-align: center;">HTTP Request Attack Simulator</h1>
+            <p style="text-align: center;">Simulate HTTP-like requests and track response times.</p>
+
+            <!-- Input Form -->
+            <div class="form-group">
+                <label for="hostname">Hostname (e.g., example.com):</label>
+                <input type="text" id="hostname" placeholder="Enter Hostname" required>
+            </div>
+            <div class="form-group">
+                <label for="port">Port:</label>
+                <input type="number" id="port" placeholder="80" value="80" required>
+            </div>
+            <div class="form-group">
+                <label for="duration">Duration (seconds):</label>
+                <input type="number" id="duration" placeholder="10" value="10" required>
+            </div>
+            <button id="start">Start Attack</button>
+            <div class="status">
+                <p id="statusText">Status: Ready</p>
+            </div>
+            <div class="log" id="log"></div>
         </div>
-        <div class="log" id="log"></div>
+
+        <!-- Side Panel -->
+        <div class="side-panel">
+            <div class="panel-title">Live Ping</div>
+            <div id="pingLog"></div>
+        </div>
     </div>
 
     <script>
-        document.getElementById('start').addEventListener('click', function() {
+        // Utility to generate random URL path
+        function generateUrlPath() {
+            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+        }
+
+        // Start button logic
+        document.getElementById('start').addEventListener('click', () => {
             const hostname = document.getElementById('hostname').value.trim();
             const port = parseInt(document.getElementById('port').value.trim());
             const duration = parseInt(document.getElementById('duration').value.trim());
             const log = document.getElementById('log');
+            const pingLog = document.getElementById('pingLog');
             const statusText = document.getElementById('statusText');
 
             if (!hostname || !port || !duration) {
@@ -72,31 +164,32 @@
             let endTime = startTime + duration * 1000;
             let requestCount = 0;
 
+            log.innerHTML = '';
+            pingLog.innerHTML = '';
             statusText.textContent = "Status: Attack in progress...";
 
-            const interval = setInterval(() => {
+            // Simulate attack requests
+            const attackInterval = setInterval(() => {
                 const now = Date.now();
                 if (now >= endTime) {
-                    clearInterval(interval);
+                    clearInterval(attackInterval);
+                    clearInterval(pingInterval);
                     statusText.textContent = `Status: Attack completed. Sent ${requestCount} requests in ${duration} seconds.`;
                     return;
                 }
 
-                // Simulate sending HTTP-like requests
                 const urlPath = generateUrlPath();
-                log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Sending request: GET /${urlPath} HTTP/1.1 to ${hostname}:${port}</p>`;
-                log.scrollTop = log.scrollHeight; // Auto-scroll to bottom
+                log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Request: GET /${urlPath} HTTP/1.1 to ${hostname}:${port}</p>`;
+                log.scrollTop = log.scrollHeight; // Auto-scroll
                 requestCount++;
-            }, 100); // Simulate 10 requests per second
+            }, 100); // Approx. 10 requests per second
 
-            function generateUrlPath() {
-                const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                let path = '';
-                for (let i = 0; i < 5; i++) {
-                    path += chars.charAt(Math.floor(Math.random() * chars.length));
-                }
-                return path;
-            }
+            // Simulate live ping updates
+            const pingInterval = setInterval(() => {
+                const latency = Math.floor(Math.random() * 200) + 50; // Random latency between 50ms and 250ms
+                pingLog.innerHTML += `<div class="ping">${new Date().toLocaleTimeString()} - Ping to ${hostname}: ${latency}ms</div>`;
+                pingLog.scrollTop = pingLog.scrollHeight; // Auto-scroll
+            }, 1000); // Update every second
         });
     </script>
 </body>
