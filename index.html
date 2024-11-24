@@ -15,6 +15,7 @@
             font-family: Arial, sans-serif;
             color: #ffffff;
             overflow: hidden;
+            background: black; /* Fallback background color */
         }
         canvas {
             position: fixed;
@@ -188,6 +189,15 @@
             return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
         }
 
+        // Simulate Ping Values
+        let basePing = 100; // Base latency in ms
+
+        function simulatePing() {
+            basePing += Math.random() > 0.5 ? 1 : -1; // Slightly increase or decrease the ping
+            basePing = Math.max(50, Math.min(basePing, 200)); // Keep ping between 50ms and 200ms
+            return Math.round(basePing);
+        }
+
         // Start button logic
         document.getElementById('start').addEventListener('click', async () => {
             const hostname = document.getElementById('hostname').value.trim();
@@ -236,7 +246,7 @@
 
             // Simulate live ping updates
             const pingInterval = setInterval(() => {
-                const latency = Math.floor(Math.random() * 200) + 50; // Random latency between 50ms and 250ms
+                const latency = simulatePing();
                 pingLog.innerHTML += `<div class="ping">${new Date().toLocaleTimeString()} - Ping to ${hostname}: ${latency}ms</div>`;
                 pingLog.scrollTop = pingLog.scrollHeight; // Auto-scroll
             }, 1000); // Update every second
