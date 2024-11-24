@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attack Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            color: #eee;
+        }
+        .container {
+            padding: 20px;
+        }
+        .status {
+            margin-top: 20px;
+        }
+        .log {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #444;
+            background-color: #111;
+            font-family: monospace;
+        }
+        .log p {
+            margin: 0;
+            padding: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HTTP Request Attack Simulator</h1>
+        <p>This simulator sends HTTP-like requests for a specified duration.</p>
+        
+        <label for="hostname">Hostname (e.g., example.com):</label>
+        <input type="text" id="hostname" placeholder="Enter Hostname" required><br><br>
+        
+        <label for="port">Port:</label>
+        <input type="number" id="port" placeholder="80" value="80" required><br><br>
+        
+        <label for="duration">Duration (seconds):</label>
+        <input type="number" id="duration" placeholder="10" value="10" required><br><br>
+        
+        <button id="start">Start Attack</button>
+        <div class="status">
+            <p id="statusText">Status: Ready</p>
+        </div>
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        document.getElementById('start').addEventListener('click', function() {
+            const hostname = document.getElementById('hostname').value.trim();
+            const port = parseInt(document.getElementById('port').value.trim());
+            const duration = parseInt(document.getElementById('duration').value.trim());
+            const log = document.getElementById('log');
+            const statusText = document.getElementById('statusText');
+
+            if (!hostname || !port || !duration) {
+                alert("Please fill in all fields.");
+                return;
+            }
+
+            let startTime = Date.now();
+            let endTime = startTime + duration * 1000;
+            let requestCount = 0;
+
+            statusText.textContent = "Status: Attack in progress...";
+
+            const interval = setInterval(() => {
+                const now = Date.now();
+                if (now >= endTime) {
+                    clearInterval(interval);
+                    statusText.textContent = `Status: Attack completed. Sent ${requestCount} requests in ${duration} seconds.`;
+                    return;
+                }
+
+                // Simulate sending HTTP-like requests
+                const urlPath = generateUrlPath();
+                log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Sending request: GET /${urlPath} HTTP/1.1 to ${hostname}:${port}</p>`;
+                log.scrollTop = log.scrollHeight; // Auto-scroll to bottom
+                requestCount++;
+            }, 100); // Simulate 10 requests per second
+
+            function generateUrlPath() {
+                const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let path = '';
+                for (let i = 0; i < 5; i++) {
+                    path += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return path;
+            }
+        });
+    </script>
+</body>
+</html>
