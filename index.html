@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attack Simulator</title>
+    <title>DDOS HOME</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1705/1705839.png" type="image/png">
+
     <style>
         /* General Styling */
         * {
@@ -171,6 +175,23 @@
         }
         drawStars();
 
+        // Fetch proxies from proxy.txt
+        async function loadProxies() {
+            try {
+                const response = await fetch('proxy.txt');
+                const text = await response.text();
+                const proxies = text.trim().split('\n').map(proxy => proxy.trim()).filter(Boolean);
+                document.getElementById('proxies').value = proxies.join('\n');
+                return proxies;
+            } catch (error) {
+                console.error("Error loading proxy list:", error);
+                return [];
+            }
+        }
+
+        // Auto-load proxies on page load
+        const proxiesPromise = loadProxies();
+
         // Simulate Ping for Ports
         const commonPorts = [80, 443, 8080, 21, 22, 25, 110, 143, 3306];
         let basePing = 100; // Base latency in ms
@@ -179,6 +200,7 @@
             return basePing + port % 50; // Simulate a ping based on the port
         }
 
+        // Auto-Find Port Button
         document.getElementById('autoFindPort').addEventListener('click', () => {
             const hostname = document.getElementById('hostname').value.trim();
             const log = document.getElementById('log');
@@ -207,30 +229,51 @@
             log.innerHTML += `<p>Best port found: ${bestPort} with ping = ${bestPing}ms</p>`;
         });
 
-        // Fetch proxies from proxy.txt
-        async function loadProxies() {
-            try {
-                const response = await fetch('proxy.txt');
-                const text = await response.text();
-                const proxies = text.trim().split('\n').map(proxy => proxy.trim()).filter(Boolean);
-                document.getElementById('proxies').value = proxies.join('\n');
-                return proxies;
-            } catch (error) {
-                console.error("Error loading proxy list:", error);
-                return [];
-            }
-        }
-
-        // Auto-load proxies on page load
-        loadProxies();
-
         // Start Attack Button
-        document.getElementById('start').addEventListener('click', () => {
+        document.getElementById('start').addEventListener('click', async () => {
             const hostname = document.getElementById('hostname').value.trim();
-            const port = document.getElementById('port').value.trim();
-            const log = document.getElementById('log');
+            const port = parseInt(document.getElementById('port').value.trim());
+            const duration = parseInt(document.getElementById('duration').value.trim());
+            const proxies = await proxiesPromise;
 
-            log.innerHTML += `<p>Starting attack on ${hostname}:${port}</p>`;
+            if (!hostname || !port || !duration) {
+                alert("Please fill in all fields.");
+                return;
+            }
+
+            const log = document.getElementById('log');
+            const pingLog = document.getElementById('pingLog');
+            const statusText = document.getElementById('statusText');
+
+            let startTime = Date.now();
+            let endTime = startTime + duration * 1000;
+            let requestCount = 0;
+
+            log.innerHTML = '';
+            pingLog.innerHTML = '';
+            statusText.textContent = "Status: Attack in progress...";
+
+            const attackInterval = setInterval(() => {
+                const now = Date.now();
+                if (now >= endTime) {
+                    clearInterval(attackInterval);
+                    statusText.textContent = `Status: Attack completed. Sent ${requestCount} requests in ${duration} seconds.`;
+                    return;
+                }
+
+                const proxy = proxies[Math.floor(Math.random() * proxies.length)] || 'no-proxy';
+                log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Request via ${proxy}: GET / HTTP/1.1 to ${hostname}:${port}</p>`;
+                requestCount++;
+
+                // Simulate a delay for the "response"
+                setTimeout(() => {
+                    log.innerHTML += `<p>Response from ${hostname}:${port} received at ${new Date().toLocaleTimeString()} - Request #${requestCount}</p>`;
+                }, simulatePing(port));
+
+                // Ensure logs scroll to the bottom
+                log.scrollTop = log.scrollHeight;
+                pingLog.scrollTop = pingLog.scrollHeight;
+            }, 100); // Request interval (in ms)
         });
     </script>
 </body>
