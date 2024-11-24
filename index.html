@@ -16,19 +16,12 @@
             color: #ffffff;
             overflow: hidden;
         }
-        /* Background Nebula */
-        body::before {
-            content: "";
+        canvas {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: url('https://i.imgur.com/OgGHnvB.jpg') no-repeat center center/cover;
             z-index: -1;
-            filter: brightness(0.5);
         }
-        /* Layout */
         .container {
             display: flex;
             height: 100vh;
@@ -58,11 +51,14 @@
             display: block;
             margin-bottom: 5px;
         }
-        input {
+        textarea, input {
             width: calc(100% - 20px);
             padding: 10px;
             border: none;
             border-radius: 5px;
+        }
+        textarea {
+            height: 100px;
         }
         button {
             width: 100%;
@@ -106,11 +102,12 @@
     </style>
 </head>
 <body>
+    <canvas id="background"></canvas>
     <div class="container">
         <!-- Main Panel -->
         <div class="main-panel">
             <h1 style="text-align: center;">HTTP Request Attack Simulator</h1>
-            <p style="text-align: center;">Simulate HTTP-like requests and track response times.</p>
+            <p style="text-align: center;">Simulate HTTP-like requests and track response times using proxies.</p>
 
             <!-- Input Form -->
             <div class="form-group">
@@ -124,6 +121,10 @@
             <div class="form-group">
                 <label for="duration">Duration (seconds):</label>
                 <input type="number" id="duration" placeholder="10" value="10" required>
+            </div>
+            <div class="form-group">
+                <label for="proxies">Proxies (one per line):</label>
+                <textarea id="proxies" placeholder="http://proxy1:8080&#10;http://proxy2:8080"></textarea>
             </div>
             <button id="start">Start Attack</button>
             <div class="status">
@@ -140,6 +141,33 @@
     </div>
 
     <script>
+        // Background Animation
+        const canvas = document.getElementById('background');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const stars = Array.from({ length: 100 }, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 2,
+            speed: Math.random() * 0.5 + 0.1,
+        }));
+
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            stars.forEach(star => {
+                star.y += star.speed;
+                if (star.y > canvas.height) star.y = 0;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+            });
+            requestAnimationFrame(drawStars);
+        }
+        drawStars();
+
         // Utility to generate random URL path
         function generateUrlPath() {
             const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -151,12 +179,18 @@
             const hostname = document.getElementById('hostname').value.trim();
             const port = parseInt(document.getElementById('port').value.trim());
             const duration = parseInt(document.getElementById('duration').value.trim());
+            const proxies = document.getElementById('proxies').value.split('\n').map(proxy => proxy.trim()).filter(Boolean);
             const log = document.getElementById('log');
             const pingLog = document.getElementById('pingLog');
             const statusText = document.getElementById('statusText');
 
             if (!hostname || !port || !duration) {
                 alert("Please fill in all fields.");
+                return;
+            }
+
+            if (proxies.length === 0) {
+                alert("Please provide at least one proxy.");
                 return;
             }
 
@@ -178,8 +212,9 @@
                     return;
                 }
 
+                const proxy = proxies[Math.floor(Math.random() * proxis.length)];
                 const urlPath = generateUrlPath();
-                log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Request: GET /${urlPath} HTTP/1.1 to ${hostname}:${port}</p>`;
+                log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Request via ${proxy}: GET /${urlPath} HTTP/1.1 to ${hostname}:${port}</p>`;
                 log.scrollTop = log.scrollHeight; // Auto-scroll
                 requestCount++;
             }, 100); // Approx. 10 requests per second
