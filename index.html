@@ -123,7 +123,6 @@
             <div class="form-group">
                 <label for="port">Port:</label>
                 <input type="number" id="port" placeholder="80" value="80" required>
-                <button id="autoFindPort">Auto-Find Port</button>
             </div>
             <div class="form-group">
                 <label for="protocol">Select Protocol:</label>
@@ -203,50 +202,23 @@
         const commonPorts = [80, 443, 8080, 21, 22, 25, 110, 143, 3306];
         let basePing = 100; // Base latency in ms
 
+        // Simulate sending a request to the target and measure the time it takes (ping)
         function simulatePing(port, protocol) {
+            const start = Date.now();
+            // Simulate the attack with random latency
             const additionalDelay = protocol === 'http' ? 10 : 20; // HTTP gets a bit less delay than UDP
-            return basePing + port % 50 + additionalDelay; // Simulate a ping based on the port and protocol
+            const simulatedPing = basePing + port % 50 + additionalDelay;
+            return simulatedPing;
         }
-
-        // Auto-Find Port Button
-        document.getElementById('autoFindPort').addEventListener('click', async () => {
-            const hostname = document.getElementById('hostname').value.trim();
-            const protocol = document.getElementById('protocol').value;
-            const log = document.getElementById('log');
-
-            if (!hostname) {
-                alert("Please enter a hostname.");
-                return;
-            }
-
-            log.innerHTML += `<p>Starting port scan for ${hostname} using ${protocol.toUpperCase()}...</p>`;
-
-            let bestPort = null;
-            let bestPing = Infinity;
-
-            commonPorts.forEach(port => {
-                const latency = simulatePing(port, protocol);
-                log.innerHTML += `<p>Port ${port}: Ping = ${latency}ms (Protocol: ${protocol.toUpperCase()})</p>`;
-
-                if (latency < bestPing) {
-                    bestPing = latency;
-                    bestPort = port;
-                }
-            });
-
-            document.getElementById('port').value = bestPort;
-            log.innerHTML += `<p>Best port found: ${bestPort} with ping = ${bestPing}ms</p>`;
-        });
 
         // Start Attack Button
         document.getElementById('start').addEventListener('click', async () => {
             const hostname = document.getElementById('hostname').value.trim();
-            const port = parseInt(document.getElementById('port').value.trim());
             const duration = parseInt(document.getElementById('duration').value.trim());
             const protocol = document.getElementById('protocol').value;
             const proxies = await proxiesPromise;
 
-            if (!hostname || !port || !duration) {
+            if (!hostname || !duration) {
                 alert("Please fill in all fields.");
                 return;
             }
@@ -263,26 +235,35 @@
             pingLog.innerHTML = '';
             statusText.textContent = "Status: Attack in progress...";
 
+            const portPingResults = {};
+
+            // Simulate attack on all ports
             const attackInterval = setInterval(() => {
                 const now = Date.now();
                 if (now >= endTime) {
                     clearInterval(attackInterval);
-                    statusText.textContent = `Status: Attack completed. Sent ${requestCount} requests in ${duration} seconds.`;
+                    const bestPort = Object.keys(portPingResults).reduce((bestPort, currentPort) => {
+                        return portPingResults[currentPort] > portPingResults[bestPort] ? currentPort : bestPort;
+                    }, commonPorts[0]);
+
+                    statusText.textContent = `Status: Attack completed. Best port for highest ping: ${bestPort}`;
                     return;
                 }
 
-                const proxy = proxies[Math.floor(Math.random() * proxies.length)] || 'no-proxy';
-                log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Request via ${proxy}: ${protocol.toUpperCase()} / HTTP/1.1 to ${hostname}:${port}</p>`;
-                requestCount++;
+                commonPorts.forEach(port => {
+                    const proxy = proxies[Math.floor(Math.random() * proxies.length)] || 'no-proxy';
+                    log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Request via ${proxy}: ${protocol.toUpperCase()} / HTTP/1.1 to ${hostname}:${port}</p>`;
+                    requestCount++;
 
-                // Simulate a delay for the "response"
-                setTimeout(() => {
-                    log.innerHTML += `<p>Response from ${hostname}:${port} received at ${new Date().toLocaleTimeString()} - Request #${requestCount}</p>`;
-                }, simulatePing(port, protocol));
+                    const ping = simulatePing(port, protocol);
+                    portPingResults[port] = portPingResults[port] ? portPingResults[port] + ping : ping;
 
-                // Ensure logs scroll to the bottom
-                log.scrollTop = log.scrollHeight;
-                pingLog.scrollTop = pingLog.scrollHeight;
+                    pingLog.innerHTML += `<div class="ping">Ping to ${hostname}:${port} - ${ping}ms</div>`;
+
+                    // Ensure logs scroll to the bottom
+                    log.scrollTop = log.scrollHeight;
+                    pingLog.scrollTop = pingLog.scrollHeight;
+                });
             }, 100); // Request interval (in ms)
         });
     </script>
