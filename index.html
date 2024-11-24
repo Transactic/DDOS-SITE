@@ -19,7 +19,7 @@
             font-family: Arial, sans-serif;
             color: #ffffff;
             overflow: hidden;
-            background: black;
+            background: black; /* Fallback background color */
         }
         canvas {
             position: fixed;
@@ -121,11 +121,23 @@
                 <input type="text" id="hostname" placeholder="Enter Hostname" required>
             </div>
             <div class="form-group">
+                <label for="port">Port:</label>
+                <input type="number" id="port" placeholder="80" value="80" required>
+            </div>
+            <div class="form-group">
                 <label for="protocol">Select Protocol:</label>
                 <select id="protocol">
                     <option value="http">HTTP</option>
                     <option value="udp">UDP</option>
                 </select>
+            </div>
+            <div class="form-group">
+                <label for="duration">Duration (seconds):</label>
+                <input type="number" id="duration" placeholder="10" value="10" required>
+            </div>
+            <div class="form-group">
+                <label for="proxies">Proxies (auto-loaded from proxy.txt):</label>
+                <textarea id="proxies" placeholder="Proxies will be auto-loaded" disabled></textarea>
             </div>
             <button id="start">Start Attack</button>
             <div class="status">
@@ -169,6 +181,23 @@
         }
         drawStars();
 
+        // Fetch proxies from proxy.txt
+        async function loadProxies() {
+            try {
+                const response = await fetch('proxy.txt');
+                const text = await response.text();
+                const proxies = text.trim().split('\n').map(proxy => proxy.trim()).filter(Boolean);
+                document.getElementById('proxies').value = proxies.join('\n');
+                return proxies;
+            } catch (error) {
+                console.error("Error loading proxy list:", error);
+                return [];
+            }
+        }
+
+        // Auto-load proxies on page load
+        const proxiesPromise = loadProxies();
+
         // Simulate Ping for Ports based on attack type (HTTP/UDP)
         const commonPorts = [80, 443, 8080, 21, 22, 25, 110, 143, 3306];
         let basePing = 100; // Base latency in ms
@@ -185,9 +214,11 @@
         // Start Attack Button
         document.getElementById('start').addEventListener('click', async () => {
             const hostname = document.getElementById('hostname').value.trim();
+            const duration = parseInt(document.getElementById('duration').value.trim());
             const protocol = document.getElementById('protocol').value;
+            const proxies = await proxiesPromise;
 
-            if (!hostname) {
+            if (!hostname || !duration) {
                 alert("Please fill in all fields.");
                 return;
             }
@@ -196,43 +227,44 @@
             const pingLog = document.getElementById('pingLog');
             const statusText = document.getElementById('statusText');
 
+            let startTime = Date.now();
+            let endTime = startTime + duration * 1000;
+            let requestCount = 0;
+
             log.innerHTML = '';
             pingLog.innerHTML = '';
-            statusText.textContent = "Status: Scanning ports...";
+            statusText.textContent = "Status: Attack in progress...";
 
             const portPingResults = {};
-            let highestPing = 0;
-            let bestPort = null;
 
-            // Simulate attack on all ports for 5 seconds each
-            for (const port of commonPorts) {
-                let startTime = Date.now();
-                let endTime = startTime + 5000; // 5 seconds per port
+            // Simulate attack on all ports
+            const attackInterval = setInterval(() => {
+                const now = Date.now();
+                if (now >= endTime) {
+                    clearInterval(attackInterval);
+                    const bestPort = Object.keys(portPingResults).reduce((bestPort, currentPort) => {
+                        return portPingResults[currentPort] > portPingResults[bestPort] ? currentPort : bestPort;
+                    }, commonPorts[0]);
 
-                log.innerHTML += `<p>Attacking ${hostname}:${port} using ${protocol.toUpperCase()}...</p>`;
-                let portPing = 0;
+                    statusText.textContent = `Status: Attack completed. Best port for highest ping: ${bestPort}`;
+                    return;
+                }
 
-                // Attack simulation for 5 seconds
-                while (Date.now() < endTime) {
+                commonPorts.forEach(port => {
+                    const proxy = proxies[Math.floor(Math.random() * proxies.length)] || 'no-proxy';
+                    log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Request via ${proxy}: ${protocol.toUpperCase()} / HTTP/1.1 to ${hostname}:${port}</p>`;
+                    requestCount++;
+
                     const ping = simulatePing(port, protocol);
-                    portPing += ping;
+                    portPingResults[port] = portPingResults[port] ? portPingResults[port] + ping : ping;
 
                     pingLog.innerHTML += `<div class="ping">Ping to ${hostname}:${port} - ${ping}ms</div>`;
+
+                    // Ensure logs scroll to the bottom
                     log.scrollTop = log.scrollHeight;
                     pingLog.scrollTop = pingLog.scrollHeight;
-                }
-
-                const averagePing = portPing / 5; // Average ping for the 5 seconds of attack
-                portPingResults[port] = averagePing;
-
-                if (averagePing > highestPing) {
-                    highestPing = averagePing;
-                    bestPort = port;
-                }
-            }
-
-            statusText.textContent = `Status: Attack completed. Best port for highest ping: ${bestPort}`;
-
+                });
+            }, 100); // Request interval (in ms)
         });
     </script>
 </body>
