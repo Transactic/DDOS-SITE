@@ -112,8 +112,8 @@
     <div class="container">
         <!-- Main Panel -->
         <div class="main-panel">
-            <h1 style="text-align: center;">HTTP Request Attack Simulator</h1>
-            <p style="text-align: center;">Simulate HTTP-like requests and track response times using proxies.</p>
+            <h1 style="text-align: center;">HTTP/UDP Request Attack Simulator</h1>
+            <p style="text-align: center;">Simulate HTTP/UDP-like requests and track response times using proxies.</p>
 
             <!-- Input Form -->
             <div class="form-group">
@@ -124,6 +124,13 @@
                 <label for="port">Port:</label>
                 <input type="number" id="port" placeholder="80" value="80" required>
                 <button id="autoFindPort">Auto-Find Port</button>
+            </div>
+            <div class="form-group">
+                <label for="protocol">Select Protocol:</label>
+                <select id="protocol">
+                    <option value="http">HTTP</option>
+                    <option value="udp">UDP</option>
+                </select>
             </div>
             <div class="form-group">
                 <label for="duration">Duration (seconds):</label>
@@ -192,17 +199,19 @@
         // Auto-load proxies on page load
         const proxiesPromise = loadProxies();
 
-        // Simulate Ping for Ports
+        // Simulate Ping for Ports based on attack type (HTTP/UDP)
         const commonPorts = [80, 443, 8080, 21, 22, 25, 110, 143, 3306];
         let basePing = 100; // Base latency in ms
 
-        function simulatePing(port) {
-            return basePing + port % 50; // Simulate a ping based on the port
+        function simulatePing(port, protocol) {
+            const additionalDelay = protocol === 'http' ? 10 : 20; // HTTP gets a bit less delay than UDP
+            return basePing + port % 50 + additionalDelay; // Simulate a ping based on the port and protocol
         }
 
         // Auto-Find Port Button
-        document.getElementById('autoFindPort').addEventListener('click', () => {
+        document.getElementById('autoFindPort').addEventListener('click', async () => {
             const hostname = document.getElementById('hostname').value.trim();
+            const protocol = document.getElementById('protocol').value;
             const log = document.getElementById('log');
 
             if (!hostname) {
@@ -210,14 +219,14 @@
                 return;
             }
 
-            log.innerHTML += `<p>Starting port scan for ${hostname}...</p>`;
+            log.innerHTML += `<p>Starting port scan for ${hostname} using ${protocol.toUpperCase()}...</p>`;
 
             let bestPort = null;
             let bestPing = Infinity;
 
             commonPorts.forEach(port => {
-                const latency = simulatePing(port);
-                log.innerHTML += `<p>Port ${port}: Ping = ${latency}ms</p>`;
+                const latency = simulatePing(port, protocol);
+                log.innerHTML += `<p>Port ${port}: Ping = ${latency}ms (Protocol: ${protocol.toUpperCase()})</p>`;
 
                 if (latency < bestPing) {
                     bestPing = latency;
@@ -234,6 +243,7 @@
             const hostname = document.getElementById('hostname').value.trim();
             const port = parseInt(document.getElementById('port').value.trim());
             const duration = parseInt(document.getElementById('duration').value.trim());
+            const protocol = document.getElementById('protocol').value;
             const proxies = await proxiesPromise;
 
             if (!hostname || !port || !duration) {
@@ -262,13 +272,13 @@
                 }
 
                 const proxy = proxies[Math.floor(Math.random() * proxies.length)] || 'no-proxy';
-                log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Request via ${proxy}: GET / HTTP/1.1 to ${hostname}:${port}</p>`;
+                log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Request via ${proxy}: ${protocol.toUpperCase()} / HTTP/1.1 to ${hostname}:${port}</p>`;
                 requestCount++;
 
                 // Simulate a delay for the "response"
                 setTimeout(() => {
                     log.innerHTML += `<p>Response from ${hostname}:${port} received at ${new Date().toLocaleTimeString()} - Request #${requestCount}</p>`;
-                }, simulatePing(port));
+                }, simulatePing(port, protocol));
 
                 // Ensure logs scroll to the bottom
                 log.scrollTop = log.scrollHeight;
