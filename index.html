@@ -30,14 +30,6 @@
             height: 100vh;
             width: 100vw;
         }
-        .logo {
-            margin: 20px 0;
-        }
-        .logo img {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-        }
         .main-content {
             display: flex;
             width: 100%;
@@ -47,6 +39,15 @@
             flex: 3;
             padding: 20px;
             overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #444 #000;
+        }
+        .main-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+        .main-panel::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 5px;
         }
         .side-panel {
             flex: 1;
@@ -54,6 +55,15 @@
             padding: 20px;
             border-left: 2px solid #444;
             overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #444 #000;
+        }
+        .side-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+        .side-panel::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 5px;
         }
         .panel-title {
             font-size: 1.5rem;
@@ -67,7 +77,7 @@
             display: block;
             margin-bottom: 5px;
         }
-        textarea, input {
+        textarea, input, select {
             width: calc(100% - 20px);
             padding: 10px;
             border: none;
@@ -104,6 +114,15 @@
             border: 1px solid #444;
             border-radius: 5px;
             font-family: monospace;
+            scrollbar-width: thin;
+            scrollbar-color: #444 #000;
+        }
+        .log::-webkit-scrollbar {
+            width: 8px;
+        }
+        .log::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 5px;
         }
         .log p {
             margin: 5px 0;
@@ -121,16 +140,20 @@
 <body>
     <canvas id="background"></canvas>
     <div class="container">
-        <div class="logo">
-            <img id="favicon-preview" src="https://cdn-icons-png.flaticon.com/512/1705/1705839.png" alt="Website Icon">
-        </div>
         <div class="main-content">
             <div class="main-panel">
                 <h1 style="text-align: center;">DDOS-PANEL</h1>
-                <p style="text-align: center;">Simulate HTTP-like requests and track response times using proxies.</p>
+                <p style="text-align: center;">Simulate HTTP-like or UDP attacks and track response times using proxies.</p>
                 <div class="form-group">
                     <label for="hostname">Hostname (e.g., example.com):</label>
                     <input type="text" id="hostname" placeholder="Enter Hostname" required>
+                </div>
+                <div class="form-group">
+                    <label for="attackType">Attack Type:</label>
+                    <select id="attackType">
+                        <option value="http">HTTP</option>
+                        <option value="udp">UDP</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="port">Port:</label>
@@ -144,7 +167,9 @@
                 <div class="form-group">
                     <label for="proxies">Proxies (auto-loaded from proxy.txt):</label>
                     <textarea id="proxies" placeholder="Proxies will be auto-loaded" disabled></textarea>
+                    <p id="proxyStats">Total Proxies: 0, Valid Proxies: 0</p>
                 </div>
+                <button id="validateProxies">Validate Proxies</button>
                 <button id="start">Start Attack</button>
                 <div class="status">
                     <p id="statusText">Status: Ready</p>
@@ -196,102 +221,43 @@
                 return [];
             }
         }
-        const proxiesPromise = loadProxies();
 
-        const commonPorts = [80, 443, 8080, 21, 22, 25, 110, 143, 3306];
-        let basePing = 100;
+        function validateProxies(proxies) {
+            let validCount = 0;
+            const proxyStats = document.getElementById('proxyStats');
+            const log = document.getElementById('log');
+            proxies.forEach(proxy => {
+                const isValid = Math.random() > 0.5; // Simulated check
+                if (isValid) validCount++;
+                log.innerHTML += `<p>Proxy ${proxy} is ${isValid ? "Valid" : "Invalid"}</p>`;
+            });
+            proxyStats.textContent = `Total Proxies: ${proxies.length}, Valid Proxies: ${validCount}`;
+        }
 
-        async function simulateLivePing(hostname) {
+        let livePingInterval;
+
+        function simulateLivePing(hostname) {
             const pingLog = document.getElementById('pingLog');
-            setInterval(() => {
-                const latency = basePing + Math.random() * 50;
+            livePingInterval = setInterval(() => {
+                const latency = Math.random() * 200 + 50;
                 const timestamp = new Date().toLocaleTimeString();
                 pingLog.innerHTML = `<div class="ping">${timestamp} - Ping to ${hostname}: ${latency.toFixed(2)}ms</div>`;
             }, 250);
         }
 
-        async function updateFavicon(hostname) {
-            const faviconUrl = `https://${hostname}/favicon.ico`;
-            document.getElementById('favicon').href = faviconUrl;
-            document.getElementById('favicon-preview').src = faviconUrl;
-        }
-
-        document.getElementById('hostname').addEventListener('input', (e) => {
-            const hostname = e.target.value.trim();
-            if (hostname) {
-                simulateLivePing(hostname);
-                updateFavicon(hostname);
-            }
-        });
-
-        document.getElementById('autoFindPort').addEventListener('click', async () => {
-            const hostname = document.getElementById('hostname').value.trim();
-            const log = document.getElementById('log');
-
-            if (!hostname) {
-                alert("Please enter a hostname.");
-                return;
-            }
-
-            log.innerHTML += `<p>Starting port DDOS test for ${hostname}...</p>`;
-            let bestPort = null;
-            let maxPingSpike = 0;
-
-            for (const port of commonPorts) {
-                log.innerHTML += `<p>Sending traffic to port ${port}...</p>`;
-                let averagePing = 0;
-
-                for (let i = 0; i < 20; i++) {
-                    averagePing += basePing + Math.random() * 50;
-                    await new Promise(resolve => setTimeout(resolve, 250));
-                }
-
-                averagePing /= 20;
-                log.innerHTML += `<p>Port ${port}: Avg Ping = ${averagePing.toFixed(2)}ms</p>`;
-
-                if (averagePing > maxPingSpike) {
-                    maxPingSpike = averagePing;
-                    bestPort = port;
-                }
-            }
-
-            document.getElementById('port').value = bestPort;
-            log.innerHTML += `<p>Port with maximum spike: ${bestPort}</p>`;
+        document.getElementById('validateProxies').addEventListener('click', async () => {
+            const proxies = await loadProxies();
+            validateProxies(proxies);
         });
 
         document.getElementById('start').addEventListener('click', async () => {
             const hostname = document.getElementById('hostname').value.trim();
-            const port = parseInt(document.getElementById('port').value.trim());
-            const duration = parseInt(document.getElementById('duration').value.trim());
-            const proxies = await proxiesPromise;
-
-            if (!hostname || !port || !duration) {
-                alert("Please fill in all fields.");
-                return;
-            }
-
+            if (!hostname) return alert("Please enter a hostname.");
+            if (livePingInterval) clearInterval(livePingInterval);
+            simulateLivePing(hostname);
+            const attackType = document.getElementById('attackType').value;
             const log = document.getElementById('log');
-            const statusText = document.getElementById('statusText');
-            let startTime = Date.now();
-            let endTime = startTime + duration * 1000;
-            let requestCount = 0;
-
-            log.innerHTML = '';
-            statusText.textContent = "Status: Attack in progress...";
-
-            const attackInterval = setInterval(() => {
-                const now = Date.now();
-                if (now >= endTime) {
-                    clearInterval(attackInterval);
-                    statusText.textContent = `Status: Attack completed. Sent ${requestCount} requests in ${duration} seconds.`;
-                    return;
-                }
-
-                const proxy = proxies[Math.floor(Math.random() * proxies.length)] || 'no-proxy';
-                log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Request via ${proxy}: GET / HTTP/1.1 to ${hostname}:${port}</p>`;
-                log.scrollTop = log.scrollHeight;
-                requestCount++;
-            }, 100);
+            log.innerHTML += `<p>Starting ${attackType.toUpperCase()} attack on ${hostname}...</p>`;
         });
     </script>
 </body>
