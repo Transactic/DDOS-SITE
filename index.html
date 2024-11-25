@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DDOS-PANEL</title>
+    <link id="favicon" rel="icon" href="https://cdn-icons-png.flaticon.com/512/1705/1705839.png" type="image/x-icon">
     <style>
         * {
             margin: 0;
@@ -121,7 +122,7 @@
     <canvas id="background"></canvas>
     <div class="container">
         <div class="logo">
-            <img id="favicon" src="https://cdn-icons-png.flaticon.com/512/1705/1705839.png" alt="Website Icon">
+            <img id="favicon-preview" src="https://cdn-icons-png.flaticon.com/512/1705/1705839.png" alt="Website Icon">
         </div>
         <div class="main-content">
             <div class="main-panel">
@@ -206,12 +207,13 @@
                 const latency = basePing + Math.random() * 50;
                 const timestamp = new Date().toLocaleTimeString();
                 pingLog.innerHTML = `<div class="ping">${timestamp} - Ping to ${hostname}: ${latency.toFixed(2)}ms</div>`;
-            }, 1000);
+            }, 250);
         }
 
         async function updateFavicon(hostname) {
             const faviconUrl = `https://${hostname}/favicon.ico`;
-            document.getElementById('favicon').src = faviconUrl;
+            document.getElementById('favicon').href = faviconUrl;
+            document.getElementById('favicon-preview').src = faviconUrl;
         }
 
         document.getElementById('hostname').addEventListener('input', (e) => {
@@ -239,12 +241,12 @@
                 log.innerHTML += `<p>Sending traffic to port ${port}...</p>`;
                 let averagePing = 0;
 
-                for (let i = 0; i < 5; i++) {
+                for (let i = 0; i < 20; i++) {
                     averagePing += basePing + Math.random() * 50;
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise(resolve => setTimeout(resolve, 250));
                 }
 
-                averagePing /= 5;
+                averagePing /= 20;
                 log.innerHTML += `<p>Port ${port}: Avg Ping = ${averagePing.toFixed(2)}ms</p>`;
 
                 if (averagePing > maxPingSpike) {
