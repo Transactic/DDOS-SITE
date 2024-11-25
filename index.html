@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attack Simulator</title>
+    <title>DDOS-PANEL</title>
     <style>
-        /* General Styling */
         * {
             margin: 0;
             padding: 0;
@@ -15,7 +14,7 @@
             font-family: Arial, sans-serif;
             color: #ffffff;
             overflow: hidden;
-            background: black; /* Fallback background color */
+            background: black;
         }
         canvas {
             position: fixed;
@@ -25,8 +24,22 @@
         }
         .container {
             display: flex;
+            flex-direction: column;
+            align-items: center;
             height: 100vh;
             width: 100vw;
+        }
+        .logo {
+            margin: 20px 0;
+        }
+        .logo img {
+            width: 100px;
+            height: 100px;
+        }
+        .main-content {
+            display: flex;
+            width: 100%;
+            flex: 1;
         }
         .main-panel {
             flex: 3;
@@ -106,57 +119,53 @@
 <body>
     <canvas id="background"></canvas>
     <div class="container">
-        <!-- Main Panel -->
-        <div class="main-panel">
-            <h1 style="text-align: center;">HTTP Request Attack Simulator</h1>
-            <p style="text-align: center;">Simulate HTTP-like requests and track response times using proxies.</p>
-
-            <!-- Input Form -->
-            <div class="form-group">
-                <label for="hostname">Hostname (e.g., example.com):</label>
-                <input type="text" id="hostname" placeholder="Enter Hostname" required>
-            </div>
-            <div class="form-group">
-                <label for="port">Port:</label>
-                <input type="number" id="port" placeholder="80" value="80" required>
-                <button id="autoFindPort">Auto-Find Port</button>
-            </div>
-            <div class="form-group">
-                <label for="duration">Duration (seconds):</label>
-                <input type="number" id="duration" placeholder="10" value="10" required>
-            </div>
-            <div class="form-group">
-                <label for="proxies">Proxies (auto-loaded from proxy.txt):</label>
-                <textarea id="proxies" placeholder="Proxies will be auto-loaded" disabled></textarea>
-            </div>
-            <button id="start">Start Attack</button>
-            <div class="status">
-                <p id="statusText">Status: Ready</p>
-            </div>
-            <div class="log" id="log"></div>
+        <div class="logo">
+            <img src="https://cdn-icons-png.flaticon.com/512/1705/1705839.png" alt="DDOS Icon">
         </div>
-
-        <!-- Side Panel -->
-        <div class="side-panel">
-            <div class="panel-title">Live Ping</div>
-            <div id="pingLog"></div>
+        <div class="main-content">
+            <div class="main-panel">
+                <h1 style="text-align: center;">DDOS-PANEL</h1>
+                <p style="text-align: center;">Simulate HTTP-like requests and track response times using proxies.</p>
+                <div class="form-group">
+                    <label for="hostname">Hostname (e.g., example.com):</label>
+                    <input type="text" id="hostname" placeholder="Enter Hostname" required>
+                </div>
+                <div class="form-group">
+                    <label for="port">Port:</label>
+                    <input type="number" id="port" placeholder="80" value="80" required>
+                    <button id="autoFindPort">Auto-Find Port</button>
+                </div>
+                <div class="form-group">
+                    <label for="duration">Duration (seconds):</label>
+                    <input type="number" id="duration" placeholder="10" value="10" required>
+                </div>
+                <div class="form-group">
+                    <label for="proxies">Proxies (auto-loaded from proxy.txt):</label>
+                    <textarea id="proxies" placeholder="Proxies will be auto-loaded" disabled></textarea>
+                </div>
+                <button id="start">Start Attack</button>
+                <div class="status">
+                    <p id="statusText">Status: Ready</p>
+                </div>
+                <div class="log" id="log"></div>
+            </div>
+            <div class="side-panel">
+                <div class="panel-title">Live Ping</div>
+                <div id="pingLog"></div>
+            </div>
         </div>
     </div>
-
     <script>
-        // Background Animation
         const canvas = document.getElementById('background');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-
         const stars = Array.from({ length: 100 }, () => ({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
             radius: Math.random() * 2,
             speed: Math.random() * 0.5 + 0.1,
         }));
-
         function drawStars() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             stars.forEach(star => {
@@ -170,8 +179,6 @@
             requestAnimationFrame(drawStars);
         }
         drawStars();
-
-        // Fetch proxies from proxy.txt
         async function loadProxies() {
             try {
                 const response = await fetch('proxy.txt');
@@ -184,71 +191,75 @@
                 return [];
             }
         }
-
-        // Auto-load proxies on page load
         const proxiesPromise = loadProxies();
-
-        // Simulate Ping for Ports
         const commonPorts = [80, 443, 8080, 21, 22, 25, 110, 143, 3306];
-        let basePing = 100; // Base latency in ms
-
+        let basePing = 100;
         function simulatePing(port) {
-            return basePing + port % 50; // Simulate a ping based on the port
+            return basePing + port % 50;
         }
-
-        // Auto-Find Port Button
-        document.getElementById('autoFindPort').addEventListener('click', () => {
+        function updateLivePing(hostname) {
+            const pingLog = document.getElementById('pingLog');
+            setInterval(() => {
+                if (!hostname) {
+                    pingLog.innerHTML = `<div class="ping">Enter a hostname to see live ping</div>`;
+                    return;
+                }
+                const latency = basePing + Math.random() * 50;
+                const timestamp = new Date().toLocaleTimeString();
+                pingLog.innerHTML = `<div class="ping">${timestamp} - Ping to ${hostname}: ${latency.toFixed(2)}ms</div>`;
+            }, 1000);
+        }
+        document.getElementById('hostname').addEventListener('input', (e) => {
+            const hostname = e.target.value.trim();
+            updateLivePing(hostname);
+        });
+        document.getElementById('autoFindPort').addEventListener('click', async () => {
             const hostname = document.getElementById('hostname').value.trim();
             const log = document.getElementById('log');
-
             if (!hostname) {
                 alert("Please enter a hostname.");
                 return;
             }
-
-            log.innerHTML += `<p>Starting port scan for ${hostname}...</p>`;
-
+            log.innerHTML += `<p>Starting port DDOS test for ${hostname}...</p>`;
             let bestPort = null;
-            let bestPing = Infinity;
-
-            commonPorts.forEach(port => {
-                const latency = simulatePing(port);
-                log.innerHTML += `<p>Port ${port}: Ping = ${latency}ms</p>`;
-
-                if (latency < bestPing) {
-                    bestPing = latency;
+            let maxPingSpike = 0;
+            const pings = {};
+            for (const port of commonPorts) {
+                log.innerHTML += `<p>Sending traffic to port ${port}...</p>`;
+                let averagePing = 0;
+                for (let i = 0; i < 5; i++) {
+                    averagePing += simulatePing(port);
+                    await new Promise((resolve) => setTimeout(resolve, 1000));
+                }
+                averagePing /= 5;
+                pings[port] = averagePing;
+                log.innerHTML += `<p>Average ping to ${hostname}:${port} = ${averagePing.toFixed(2)}ms</p>`;
+                if (averagePing > maxPingSpike) {
+                    maxPingSpike = averagePing;
                     bestPort = port;
                 }
-            });
-
+            }
+            log.innerHTML += `<p>Port with maximum ping spike: ${bestPort} (Average Ping: ${maxPingSpike.toFixed(2)}ms)</p>`;
             document.getElementById('port').value = bestPort;
-            log.innerHTML += `<p>Best port found: ${bestPort} with ping = ${bestPing}ms</p>`;
         });
-
-        // Start Attack Button
         document.getElementById('start').addEventListener('click', async () => {
             const hostname = document.getElementById('hostname').value.trim();
             const port = parseInt(document.getElementById('port').value.trim());
             const duration = parseInt(document.getElementById('duration').value.trim());
             const proxies = await proxiesPromise;
-
             if (!hostname || !port || !duration) {
                 alert("Please fill in all fields.");
                 return;
             }
-
             const log = document.getElementById('log');
             const pingLog = document.getElementById('pingLog');
             const statusText = document.getElementById('statusText');
-
             let startTime = Date.now();
             let endTime = startTime + duration * 1000;
             let requestCount = 0;
-
             log.innerHTML = '';
             pingLog.innerHTML = '';
             statusText.textContent = "Status: Attack in progress...";
-
             const attackInterval = setInterval(() => {
                 const now = Date.now();
                 if (now >= endTime) {
@@ -256,7 +267,6 @@
                     statusText.textContent = `Status: Attack completed. Sent ${requestCount} requests in ${duration} seconds.`;
                     return;
                 }
-
                 const proxy = proxies[Math.floor(Math.random() * proxies.length)] || 'no-proxy';
                 log.innerHTML += `<p>${new Date().toLocaleTimeString()} - Request via ${proxy}: GET / HTTP/1.1 to ${hostname}:${port}</p>`;
                 log.scrollTop = log.scrollHeight;
