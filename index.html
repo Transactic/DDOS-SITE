@@ -158,11 +158,6 @@
                 <div class="form-group">
                     <label for="port">Port:</label>
                     <input type="number" id="port" placeholder="80" value="80" required>
-                    <button id="autoFindPort">Auto-Find Port</button>
-                </div>
-                <div class="form-group">
-                    <label for="duration">Duration (seconds):</label>
-                    <input type="number" id="duration" placeholder="10" value="10" required>
                 </div>
                 <div class="form-group">
                     <label for="proxies">Proxies (auto-loaded from proxy.txt):</label>
@@ -170,6 +165,7 @@
                     <p id="proxyStats">Total Proxies: 0, Valid Proxies: 0</p>
                 </div>
                 <button id="validateProxies">Validate Proxies</button>
+                <button id="testDdos">Test DDOS</button>
                 <button id="start">Start Attack</button>
                 <div class="status">
                     <p id="statusText">Status: Ready</p>
@@ -234,30 +230,20 @@
             proxyStats.textContent = `Total Proxies: ${proxies.length}, Valid Proxies: ${validCount}`;
         }
 
-        let livePingInterval;
-
-        function simulateLivePing(hostname) {
-            const pingLog = document.getElementById('pingLog');
-            livePingInterval = setInterval(() => {
-                const latency = Math.random() * 200 + 50;
-                const timestamp = new Date().toLocaleTimeString();
-                pingLog.innerHTML = `<div class="ping">${timestamp} - Ping to ${hostname}: ${latency.toFixed(2)}ms</div>`;
-            }, 250);
-        }
-
         document.getElementById('validateProxies').addEventListener('click', async () => {
             const proxies = await loadProxies();
             validateProxies(proxies);
         });
 
-        document.getElementById('start').addEventListener('click', async () => {
-            const hostname = document.getElementById('hostname').value.trim();
-            if (!hostname) return alert("Please enter a hostname.");
-            if (livePingInterval) clearInterval(livePingInterval);
-            simulateLivePing(hostname);
-            const attackType = document.getElementById('attackType').value;
+        document.getElementById('testDdos').addEventListener('click', () => {
             const log = document.getElementById('log');
-            log.innerHTML += `<p>Starting ${attackType.toUpperCase()} attack on ${hostname}...</p>`;
+            log.innerHTML += `<p>Testing DDOS functionality...</p>`;
+            for (let i = 1; i <= 5; i++) {
+                setTimeout(() => {
+                    log.innerHTML += `<p>DDOS Test ${i}: Request sent to hostname on port 80.</p>`;
+                    log.scrollTop = log.scrollHeight;
+                }, i * 500);
+            }
         });
     </script>
 </body>
