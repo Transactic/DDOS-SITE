@@ -3,246 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDOS-PANEL</title>
-    <link id="favicon" rel="icon" href="https://cdn-icons-png.flaticon.com/512/1705/1705839.png" type="image/x-icon">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            color: #ffffff;
-            overflow: hidden;
-            background: black;
-        }
-        canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: -1;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            width: 100vw;
-        }
-        .main-content {
-            display: flex;
-            width: 100%;
-            flex: 1;
-        }
-        .main-panel {
-            flex: 3;
-            padding: 20px;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: #444 #000;
-        }
-        .main-panel::-webkit-scrollbar {
-            width: 8px;
-        }
-        .main-panel::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 5px;
-        }
-        .side-panel {
-            flex: 1;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border-left: 2px solid #444;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: #444 #000;
-        }
-        .side-panel::-webkit-scrollbar {
-            width: 8px;
-        }
-        .side-panel::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 5px;
-        }
-        .panel-title {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        textarea, input, select {
-            width: calc(100% - 20px);
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-        }
-        textarea {
-            height: 100px;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            background: #ff5722;
-            color: white;
-            font-size: 1rem;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.3s;
-            margin-bottom: 10px;
-        }
-        button:hover {
-            background: #e64a19;
-        }
-        .status {
-            margin-top: 20px;
-            font-size: 1rem;
-            text-align: center;
-        }
-        .log {
-            max-height: 300px;
-            overflow-y: auto;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px;
-            border: 1px solid #444;
-            border-radius: 5px;
-            font-family: monospace;
-            scrollbar-width: thin;
-            scrollbar-color: #444 #000;
-        }
-        .log::-webkit-scrollbar {
-            width: 8px;
-        }
-        .log::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 5px;
-        }
-        .log p {
-            margin: 5px 0;
-        }
-        .ping {
-            font-family: monospace;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid #444;
-            border-radius: 5px;
-            margin-bottom: 5px;
-        }
-    </style>
+    <title>Login - DDOS Panel</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <canvas id="background"></canvas>
     <div class="container">
-        <div class="main-content">
-            <div class="main-panel">
-                <h1 style="text-align: center;">DDOS-PANEL</h1>
-                <p style="text-align: center;">Simulate HTTP-like or UDP attacks and track response times using proxies.</p>
-                <div class="form-group">
-                    <label for="hostname">Hostname (e.g., example.com):</label>
-                    <input type="text" id="hostname" placeholder="Enter Hostname" required>
-                </div>
-                <div class="form-group">
-                    <label for="attackType">Attack Type:</label>
-                    <select id="attackType">
-                        <option value="http">HTTP</option>
-                        <option value="udp">UDP</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="port">Port:</label>
-                    <input type="number" id="port" placeholder="80" value="80" required>
-                </div>
-                <div class="form-group">
-                    <label for="proxies">Proxies (auto-loaded from proxy.txt):</label>
-                    <textarea id="proxies" placeholder="Proxies will be auto-loaded" disabled></textarea>
-                    <p id="proxyStats">Total Proxies: 0, Valid Proxies: 0</p>
-                </div>
-                <button id="validateProxies">Validate Proxies</button>
-                <button id="testDdos">Test DDOS</button>
-                <button id="start">Start Attack</button>
-                <div class="status">
-                    <p id="statusText">Status: Ready</p>
-                </div>
-                <div class="log" id="log"></div>
-            </div>
-            <div class="side-panel">
-                <div class="panel-title">Live Ping</div>
-                <div id="pingLog"></div>
-            </div>
+        <div class="login-panel">
+            <h1>Login</h1>
+            <form id="loginForm">
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Enter username" required>
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Enter password" required>
+                <button type="submit">Login</button>
+                <p id="loginStatus"></p>
+            </form>
         </div>
     </div>
     <script>
-        const canvas = document.getElementById('background');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
 
-        const stars = Array.from({ length: 100 }, () => ({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            radius: Math.random() * 2,
-            speed: Math.random() * 0.5 + 0.1,
-        }));
-
-        function drawStars() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            stars.forEach(star => {
-                star.y += star.speed;
-                if (star.y > canvas.height) star.y = 0;
-                ctx.beginPath();
-                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-            });
-            requestAnimationFrame(drawStars);
-        }
-        drawStars();
-
-        async function loadProxies() {
-            try {
-                const response = await fetch('proxy.txt');
-                const text = await response.text();
-                const proxies = text.trim().split('\n').map(proxy => proxy.trim()).filter(Boolean);
-                document.getElementById('proxies').value = proxies.join('\n');
-                return proxies;
-            } catch (error) {
-                console.error("Error loading proxy list:", error);
-                return [];
-            }
-        }
-
-        function validateProxies(proxies) {
-            let validCount = 0;
-            const proxyStats = document.getElementById('proxyStats');
-            const log = document.getElementById('log');
-            proxies.forEach(proxy => {
-                const isValid = Math.random() > 0.5; // Simulated check
-                if (isValid) validCount++;
-                log.innerHTML += `<p>Proxy ${proxy} is ${isValid ? "Valid" : "Invalid"}</p>`;
-            });
-            proxyStats.textContent = `Total Proxies: ${proxies.length}, Valid Proxies: ${validCount}`;
-        }
-
-        document.getElementById('validateProxies').addEventListener('click', async () => {
-            const proxies = await loadProxies();
-            validateProxies(proxies);
-        });
-
-        document.getElementById('testDdos').addEventListener('click', () => {
-            const log = document.getElementById('log');
-            log.innerHTML += `<p>Testing DDOS functionality...</p>`;
-            for (let i = 1; i <= 5; i++) {
-                setTimeout(() => {
-                    log.innerHTML += `<p>DDOS Test ${i}: Request sent to hostname on port 80.</p>`;
-                    log.scrollTop = log.scrollHeight;
-                }, i * 500);
+            if (username === 'admin' && password === 'password123') {
+                window.location.href = 'ddos-panel.html';
+            } else {
+                document.getElementById('loginStatus').textContent = 'Invalid credentials, please try again.';
             }
         });
     </script>
